@@ -22,8 +22,8 @@ Who = -0.5 + (0.5+0.5).*rand(tamO,tamH+1);%W entre Hidden e Output
 %Who = [0.064560, 0.17998, -0.10476];
 %Wih = [-0.34522, -0.11992, 0.021075; 0.45505, 0.22241, -0.10950];
 
-Who = [13, 13,-8];%já otimizados
-Wih = [3, -3, -1; -3, 3, -1];
+Who = [13, 13,-8];%convergem rápido
+Wih = [3, -3, -1; -3, 3, -1];%convergem rápido
 
 [WihB,WhoB,rodadas] = backpropagation2(X,r,teta,1e-3,Wih,Who);
 rodadas
