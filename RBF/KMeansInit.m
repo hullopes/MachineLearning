@@ -92,7 +92,7 @@ function [centros,sigmas,erro,espalhamento] = KMeansInit(dados,k,limiar)
   %grupo 3
   maiorD3 = -1000;
   for i=1:length(grupo3)
-    d = calculaDist(grupo3(i,:),centros(1,:));
+    d = calculaDist(grupo3(i,:),centros(3,:));
     if d>maiorD3
       maiorD3 = d;
     end
