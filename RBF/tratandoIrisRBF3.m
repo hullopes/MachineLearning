@@ -50,7 +50,7 @@ Who = -0.01 + (0.01+0.01).*rand(o,h+1);%W entre Hidden e Output
 %%%%Passo 2
 %pesos da segunda camada
 S = espalhamento./2;%dica do slide 12 (rbf) - metade da distância do cabra mais distante
-limiar = 11e-2;
+limiar = 109e-3;
 erroQ = 2*limiar;
 erros = [];
 cont = 0;
@@ -84,7 +84,7 @@ while erroQ > limiar
         Who(1,:) = Who(1,:) + delta_h_o1;
         Who(2,:) = Who(2,:) + delta_h_o2; 
    end
-   erroQ = erroQ/length(dados)
+   erroQ = erroQ/length(dadosT)
    erros(end+1) = erroQ;
    if cont>1000
      break;
