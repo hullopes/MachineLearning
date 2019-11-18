@@ -1,14 +1,16 @@
 %quarta tentativa - agora limitando as amostras para o treinamento
 %validando para todas as amostras de testes
-%implementando a atualização dos centros e do espalhamento
+%implementando equações dos slides para classificação
+%o número de neurônios da camada H é maior que os parâmetros de entrada
+%considerando o vídeo https://www.youtube.com/watch?v=nOt_V7ndmLE
 clear all; close all;
 
 [v1,v2,v3,v4,labels] = textread('iris.txt','%f,%f,%f,%f,%s');
 dadosI = [v1 v2 v3 v4];
 
-nlabelsI = zeros(length(labels),2);
+nlabelsI = zeros(length(labels),3);
 
-classes = [0 0;1 0;0 1];
+classes = [1 0 0;0 1 0;0 0 1];
 
 
 %alterando as labels para números, conforme vetor classes
@@ -34,19 +36,17 @@ labelsV= nlabelsI(rangeV,:);
 
 
 n = 0.12;
-h=3;%número de clusters, ou o número de neurônios da camada H
-o=2;%número de saídas - neurônios da camada O
+h=5;%o número de neurônios da camada H - é maior que o número de atributos de entrada (4)
+o=3;%número de saídas - neurônios da camada O = quantidade de classes = 3
 %chutando os pesos iniciais - última coluna é o bias
 Who = -0.01 + (0.01+0.01).*rand(o,h+1);%W entre Hidden e Output
 
-%Who com acerto
-%Who = [ -0.851257   1.386992  -4.858578   4.162226;0.025432  -1.248337   5.548713  -3.908919];
-%Who = [  -0.96053   1.41182  -5.31746   4.58267; 0.14745  -1.24920   6.06317  -4.39496];
-%Who = [ -0.90276   1.41651  -5.00813   4.32980;0.10296  -1.27981   5.78696  -4.15554];%deu 91% de acerto
+%Who = [ 2.181105   2.978497  -1.593458  -1.786957  -1.868146  -0.092057; -1.044192  -1.333448   3.032104  -1.367466   1.697651  -0.166539;-1.142925  -1.638593  -1.427015   3.158314   0.164022   0.255263];
+
 %aprendizado híbrido - slide 12
 %%%%Passo 1
 %centros e espalhamentos da primeira camada escondida
-[centros,sigmas,erro,espalhamento] = KMeansInit(dadosI,h,1e-4);
+[centros,sigmas,err,espalhamento] = KMeansInit2(dadosI,h,1e-4);
 
 %%%%Passo 2
 %pesos da segunda camada
@@ -58,6 +58,8 @@ cont = 0;
 while erroQ > limiar
   cont+=1;
   erroQ=0;
+  erron=0;
+  erro=0;
   for a=1:length(dadosT)
          ids = randperm(size(dadosT,1));%lista randômica
          dados = dadosT(ids,:);%ordenando com ids
@@ -72,20 +74,33 @@ while erroQ > limiar
          d3 = dados(a,:)-centros(3,:);
          d3quad = sum(d3.^2);
          resp(3,:) = exp(-(d3quad/(2*espalhamento(3)^2)));
+         d4 = dados(a,:)-centros(4,:);
+         d4quad = sum(d4.^2);
+         resp(4,:) = exp(-(d4quad/(2*espalhamento(4)^2)));
+         d5 = dados(a,:)-centros(5,:);
+         d5quad = sum(d5.^2);
+         resp(5,:) = exp(-(d5quad/(2*espalhamento(5)^2)));
          
-         y1 = (Who(1,1)*resp(1,:)) + (Who(1,2)*resp(2,:)) + (Who(1,3)*resp(3,:)) + Who(1,4);
-         y2 = (Who(2,1)*resp(1,:)) + (Who(2,2)*resp(2,:)) + (Who(2,3)*resp(3,:)) + Who(2,4);
+         soma1 = (Who(1,1)*resp(1,:)) + (Who(1,2)*resp(2,:)) + (Who(1,3)*resp(3,:)) + (Who(1,4)*resp(4,:)) + (Who(1,5)*resp(5,:)) + Who(1,6);
+         soma2 = (Who(2,1)*resp(1,:)) + (Who(2,2)*resp(2,:)) + (Who(2,3)*resp(3,:)) + (Who(2,4)*resp(4,:)) + (Who(2,5)*resp(5,:)) + Who(2,6);
+         soma3 = (Who(3,1)*resp(1,:)) + (Who(3,2)*resp(2,:)) + (Who(3,3)*resp(3,:)) + (Who(3,4)*resp(4,:)) + (Who(3,5)*resp(5,:)) + Who(3,6);
+         %usando o slide #17
+         y1 = exp(soma1)/(sum([exp(soma1),exp(soma2),exp(soma3)]));
+         y2 = exp(soma2)/(sum([exp(soma1),exp(soma2),exp(soma3)]));
+         y3 = exp(soma3)/(sum([exp(soma1),exp(soma2),exp(soma3)]));
          
-         %erro % slide 14
-        erro = sum((nlabels(a,:)-[y1 y2]).^2);
+          erro = sum((nlabels(a,:)-[y1 y2 y3]).^2);
         erroQ = erroQ+erro;
         delta_h_o1 = n*(nlabels(a,1)-y1)*[resp',1];
         delta_h_o2 = n*(nlabels(a,2)-y2)*[resp',1];
+        delta_h_o3 = n*(nlabels(a,3)-y3)*[resp',1];
 
         Who(1,:) = Who(1,:) + delta_h_o1;
         Who(2,:) = Who(2,:) + delta_h_o2; 
+        Who(3,:) = Who(3,:) + delta_h_o3; 
    end
-   erroQ = erroQ/length(dados)
+   
+   erroQ = erroQ/length(dadosT)
    erros(end+1) = erroQ;
    if cont>1000
      break;
@@ -107,15 +122,28 @@ for i=1:length(dadosV)
          d3 = dadosV(i,:)-centros(3,:);
          d3quad = sum(d3.^2);
          resp(3,:) = exp(-(d3quad/(2*espalhamento(3)^2)));
+         d4 = dadosV(i,:)-centros(4,:);
+         d4quad = sum(d4.^2);
+         resp(4,:) = exp(-(d4quad/(2*espalhamento(4)^2)));
+         d5 = dadosV(i,:)-centros(5,:);
+         d5quad = sum(d5.^2);
+         resp(5,:) = exp(-(d5quad/(2*espalhamento(5)^2)));
          
-         y1 = (Who(1,1)*resp(1,:)) + (Who(1,2)*resp(2,:)) + (Who(1,3)*resp(3,:)) + Who(1,4);
-         y2 = (Who(2,1)*resp(1,:)) + (Who(2,2)*resp(2,:)) + (Who(2,3)*resp(3,:)) + Who(2,4);
+         soma1 = (Who(1,1)*resp(1,:)) + (Who(1,2)*resp(2,:)) + (Who(1,3)*resp(3,:)) + (Who(1,4)*resp(4,:)) + (Who(1,5)*resp(5,:)) + Who(1,6);
+         soma2 = (Who(2,1)*resp(1,:)) + (Who(2,2)*resp(2,:)) + (Who(2,3)*resp(3,:)) + (Who(2,4)*resp(4,:)) + (Who(2,5)*resp(5,:)) + Who(2,6);
+         soma3 = (Who(3,1)*resp(1,:)) + (Who(3,2)*resp(2,:)) + (Who(3,3)*resp(3,:)) + (Who(3,4)*resp(4,:)) + (Who(3,5)*resp(5,:)) + Who(3,6);
+         %usando o slide #17
+         y1 = exp(soma1)/(sum([exp(soma1),exp(soma2),exp(soma3)]));
+         y2 = exp(soma2)/(sum([exp(soma1),exp(soma2),exp(soma3)]));
+         y3 = exp(soma3)/(sum([exp(soma1),exp(soma2),exp(soma3)]));
          
          %[y1 labelsV(i,1);y2 labelsV(i,2)];
          
-         t = [y1>0.5 y2>0.5];
+         r = labelsV(i,:);%a label verdadeira
          
-         if sum(t==labelsV(i,:))==2
+         t = [y1>0.5 y2>0.5 y3>0.5];
+         
+         if find(r==max(r))==find(t==max(t))
            acertos+=1;
          end;
 end
